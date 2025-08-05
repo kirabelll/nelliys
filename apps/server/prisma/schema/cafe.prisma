@@ -1,0 +1,115 @@
+enum OrderStatus {
+  PENDING     // Created by reception
+  CONFIRMED   // Accepted by cashier
+  PAID        // Payment confirmed
+  PREPARING   // Being prepared by chef
+  READY       // Ready for pickup
+  COMPLETED   // Order fulfilled
+  CANCELLED   // Order cancelled
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Customer {
+  id        String   @id @default(cuid()) @map("_id")
+  name      String
+  phone     String?  @unique
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  orders    Order[]
+
+  @@map("customer")
+}
+
+model Category {
+  id          String @id @default(cuid()) @map("_id")
+  name        String
+  description String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  menuItems   MenuItem[]
+
+  @@map("category")
+}
+
+model MenuItem {
+  id          String  @id @default(cuid()) @map("_id")
+  name        String
+  description String?
+  price       Decimal @db.Decimal(10, 2)
+  isAvailable Boolean @default(true)
+  categoryId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  category    Category @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+
+  @@map("menuItem")
+}
+
+model Order {
+  id            String        @id @default(cuid()) @map("_id")
+  orderNumber   String        @unique
+  status        OrderStatus   @default(PENDING)
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  
+  createdById   String
+  createdBy     User          @relation("CreatedBy", fields: [createdById], references: [id])
+  
+  processedById String?
+  processedBy   User?         @relation("ProcessedBy", fields: [processedById], references: [id])
+  
+  preparedById  String?
+  preparedBy    User?         @relation("PreparedBy", fields: [preparedById], references: [id])
+  
+  orderItems    OrderItem[]
+  payment       Payment?
+
+  @@map("order")
+}
+
+model OrderItem {
+  id         String @id @default(cuid()) @map("_id")
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+  
+  orderId    String
+  order      Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@map("orderItem")
+}
+
+model Payment {
+  id            String        @id @default(cuid()) @map("_id")
+  amount        Decimal       @db.Decimal(10, 2)
+  status        PaymentStatus @default(PENDING)
+  paymentMethod String        // cash, card, digital
+  transactionId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id])
+
+  @@map("payment")
+}

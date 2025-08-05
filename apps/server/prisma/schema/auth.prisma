@@ -1,13 +1,26 @@
+enum UserRole {
+  RECEPTION
+  CHEF  
+  CASHIER
+  SUPER_ADMIN
+}
+
 model User {
   id            String    @id @map("_id")
   name          String
   email         String
   emailVerified Boolean
   image         String?
+  role          UserRole  @default(RECEPTION)
   createdAt     DateTime
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  
+  // Cafe management relations
+  createdOrders Order[] @relation("CreatedBy")
+  processedOrders Order[] @relation("ProcessedBy") 
+  preparedOrders Order[] @relation("PreparedBy")
 
   @@unique([email])
   @@map("user")

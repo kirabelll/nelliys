@@ -1,27 +1,32 @@
-"use client"
-import { authClient } from "@/lib/auth-client";
+"use client";
+
+import ProtectedRoute from "@/components/protected-route";
+import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
-
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!session && !isPending) {
-      router.push("/login");
+    // Redirect to role-specific dashboard
+    if (user) {
+      const dashboardPath = user.role === 'CASHIER' ? '/dashboard/cashier' : 
+                           user.role === 'CHEF' ? '/dashboard/chef' : 
+                           '/dashboard/reception';
+      router.push(dashboardPath);
     }
-  }, [session, isPending]);
-
-  if (isPending) {
-    return <div>Loading...</div>;
-  }
+  }, [user, router]);
 
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Welcome {session?.user.name}</p>
-    </div>
+    <ProtectedRoute>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Redirecting...</h1>
+          <p>Taking you to your dashboard...</p>
+        </div>
+      </div>
+    </ProtectedRoute>
   );
 }

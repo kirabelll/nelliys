@@ -1,32 +1,51 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import { createServer } from "http";
 import { auth } from "./lib/auth";
 import { toNodeHandler } from "better-auth/node";
+import { initializeSocket } from "./lib/socket";
+import apiRouter from "./routers";
 
 const app = express();
+const server = createServer(app);
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "",
-    methods: ["GET", "POST", "OPTIONS"],
+    origin: process.env.CORS_ORIGIN || "http://localhost:3001",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-app.all("/api/auth{/*path}", toNodeHandler(auth));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 
 
-app.use(express.json())
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - ${req.headers['user-agent']?.substring(0, 50) || 'Unknown'}`);
+  next();
+});
 
+// Auth routes - Better Auth handles all /api/auth/* routes
+app.use("/api/auth", toNodeHandler(auth));
+
+// API routes
+app.use("/api", apiRouter);
 
 app.get("/", (_req, res) => {
   res.status(200).send("OK");
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+
+// Initialize Socket.IO
+initializeSocket(server);
+
+server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  console.log(`Socket.IO server initialized`);
 });

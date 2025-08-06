@@ -5,26 +5,39 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import RoleGuard from "@/components/common/RoleGuard";
 import { apiClient } from "@/lib/api-client";
-import { Customer } from "@/types";
+import { type Customer } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { 
-  Plus, 
-  Search, 
-  Users, 
-  Phone, 
-  Mail, 
-  Eye, 
-  Edit, 
+import {
+  Plus,
+  Search,
+  Users,
+  Phone,
+  Mail,
+  Eye,
+  Edit,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 
 export default function CustomersPage() {
@@ -46,9 +59,9 @@ export default function CustomersPage() {
         limit: pagination.limit,
         search: search || undefined,
       });
-      
-      setCustomers(response.customers || []);
-      setPagination(response.pagination || pagination);
+
+      setCustomers((response as { customers: Customer[] }).customers || []);
+      setPagination((response as { pagination: typeof pagination }).pagination || pagination);
     } catch (error) {
       console.error("Error fetching customers:", error);
     } finally {
@@ -129,10 +142,9 @@ export default function CustomersPage() {
             <CardHeader>
               <CardTitle>Customer List</CardTitle>
               <CardDescription>
-                {pagination.total > 0 
+                {pagination.total > 0
                   ? `Showing ${customers.length} of ${pagination.total} customers`
-                  : "No customers found"
-                }
+                  : "No customers found"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -173,7 +185,9 @@ export default function CustomersPage() {
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <div className="font-medium">{customer.name}</div>
+                                <div className="font-medium">
+                                  {customer.name}
+                                </div>
                               </div>
                             </div>
                           </TableCell>
@@ -203,12 +217,16 @@ export default function CustomersPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end space-x-2">
-                              <Link href={`/dashboard/reception/customers/${customer.id}`}>
+                              <Link
+                                href={`/dashboard/reception/customers/${customer.id}`}
+                              >
                                 <Button variant="ghost" size="sm">
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </Link>
-                              <Link href={`/dashboard/reception/customers/${customer.id}/edit`}>
+                              <Link
+                                href={`/dashboard/reception/customers/${customer.id}/edit`}
+                              >
                                 <Button variant="ghost" size="sm">
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -224,9 +242,13 @@ export default function CustomersPage() {
                   {pagination.pages > 1 && (
                     <div className="flex items-center justify-between pt-4">
                       <div className="text-sm text-muted-foreground">
-                        Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
-                        {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                        {pagination.total} results
+                        Showing {(pagination.page - 1) * pagination.limit + 1}{" "}
+                        to{" "}
+                        {Math.min(
+                          pagination.page * pagination.limit,
+                          pagination.total
+                        )}{" "}
+                        of {pagination.total} results
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -259,12 +281,13 @@ export default function CustomersPage() {
               ) : (
                 <div className="text-center py-12">
                   <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-2 text-lg font-semibold">No customers found</h3>
+                  <h3 className="mt-2 text-lg font-semibold">
+                    No customers found
+                  </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {searchQuery 
-                      ? "Try adjusting your search terms or clear the search to see all customers." 
-                      : "Get started by adding your first customer to the system."
-                    }
+                    {searchQuery
+                      ? "Try adjusting your search terms or clear the search to see all customers."
+                      : "Get started by adding your first customer to the system."}
                   </p>
                   {!searchQuery && (
                     <div className="mt-6">

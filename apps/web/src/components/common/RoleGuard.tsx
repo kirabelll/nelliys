@@ -1,8 +1,8 @@
 "use client";
 
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { authClient } from "@/lib/auth-client";
-import { UserRole } from "@/types";
+import type { UserRole } from "@/types";
 
 interface RoleGuardProps {
   allowedRoles: UserRole[];
@@ -29,7 +29,7 @@ export default function RoleGuard({ allowedRoles, children, fallback }: RoleGuar
     );
   }
 
-  const userRole = session.user.role as UserRole;
+  const userRole = (session.user as any).role as UserRole;
   
   if (!allowedRoles.includes(userRole)) {
     return fallback || (

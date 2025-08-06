@@ -45,7 +45,7 @@ export default function UsersPage() {
     try {
       setLoading(true);
       const response = await apiClient.getUsers();
-      setUsers(response);
+      setUsers(response as User[]);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to fetch users");

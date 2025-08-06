@@ -5,24 +5,30 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import RoleGuard from "@/components/common/RoleGuard";
 import { apiClient } from "@/lib/api-client";
-import { Customer, MenuItem, Category } from "@/types";
+import type { Customer, MenuItem, Category } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
-  Save, 
-  Search, 
-  Plus, 
-  Minus, 
+import {
+  ArrowLeft,
+  Save,
+  Search,
+  Plus,
+  Minus,
   ShoppingCart,
   User,
   Coffee,
-  Trash2
+  Trash2,
 } from "lucide-react";
 
 interface OrderItem {
@@ -37,7 +43,9 @@ export default function NewOrderPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null
+  );
   const [customerSearch, setCustomerSearch] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState("");
@@ -46,15 +54,18 @@ export default function NewOrderPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [customersResponse, menuItemsResponse, categoriesResponse] = await Promise.all([
-          apiClient.getCustomers({ limit: 100 }),
-          apiClient.getMenuItems(),
-          apiClient.getCategories(),
-        ]);
+        const [customersResponse, menuItemsResponse, categoriesResponse] =
+          await Promise.all([
+            apiClient.getCustomers({ limit: 100 }),
+            apiClient.getMenuItems(),
+            apiClient.getCategories(),
+          ]);
 
-        setCustomers(customersResponse.customers || []);
-        setMenuItems(menuItemsResponse || []);
-        setCategories(categoriesResponse || []);
+        setCustomers(
+          (customersResponse as { customers: Customer[] }).customers || []
+        );
+        setMenuItems((menuItemsResponse as MenuItem[]) || []);
+        setCategories((categoriesResponse as Category[]) || []);
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Failed to load data");
@@ -64,60 +75,72 @@ export default function NewOrderPage() {
     fetchData();
   }, []);
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    customer.phone?.includes(customerSearch)
+  const filteredCustomers = customers.filter(
+    (customer) =>
+      customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      customer.email?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      customer.phone?.includes(customerSearch)
   );
 
-  const filteredMenuItems = menuItems.filter(item => {
+  const filteredMenuItems = menuItems.filter((item) => {
     if (selectedCategory === "all") return item.isAvailable;
     return item.categoryId === selectedCategory && item.isAvailable;
   });
 
   const addToOrder = (menuItem: MenuItem) => {
-    const existingItem = orderItems.find(item => item.menuItemId === menuItem.id);
-    
+    const existingItem = orderItems.find(
+      (item) => item.menuItemId === menuItem.id
+    );
+
     if (existingItem) {
-      setOrderItems(prev => prev.map(item =>
-        item.menuItemId === menuItem.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
+      setOrderItems((prev) =>
+        prev.map((item) =>
+          item.menuItemId === menuItem.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      );
     } else {
-      setOrderItems(prev => [...prev, {
-        menuItemId: menuItem.id,
-        menuItem,
-        quantity: 1,
-      }]);
+      setOrderItems((prev) => [
+        ...prev,
+        {
+          menuItemId: menuItem.id,
+          menuItem,
+          quantity: 1,
+        },
+      ]);
     }
   };
 
   const updateQuantity = (menuItemId: string, quantity: number) => {
     if (quantity <= 0) {
-      setOrderItems(prev => prev.filter(item => item.menuItemId !== menuItemId));
+      setOrderItems((prev) =>
+        prev.filter((item) => item.menuItemId !== menuItemId)
+      );
     } else {
-      setOrderItems(prev => prev.map(item =>
-        item.menuItemId === menuItemId
-          ? { ...item, quantity }
-          : item
-      ));
+      setOrderItems((prev) =>
+        prev.map((item) =>
+          item.menuItemId === menuItemId ? { ...item, quantity } : item
+        )
+      );
     }
   };
 
   const removeFromOrder = (menuItemId: string) => {
-    setOrderItems(prev => prev.filter(item => item.menuItemId !== menuItemId));
+    setOrderItems((prev) =>
+      prev.filter((item) => item.menuItemId !== menuItemId)
+    );
   };
 
   const calculateTotal = () => {
     return orderItems.reduce((total, item) => {
-      return total + (item.menuItem.price * item.quantity);
+      return total + item.menuItem.price * item.quantity;
     }, 0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedCustomer) {
       toast.error("Please select a customer");
       return;
@@ -133,19 +156,21 @@ export default function NewOrderPage() {
       const orderData = {
         customerId: selectedCustomer.id,
         notes: notes.trim() || undefined,
-        items: orderItems.map(item => ({
+        items: orderItems.map((item) => ({
           menuItemId: item.menuItemId,
           quantity: item.quantity,
         })),
       };
 
       await apiClient.createOrder(orderData);
-      
+
       toast.success("Order created successfully!");
       router.push("/dashboard/reception/orders");
     } catch (error) {
       console.error("Error creating order:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to create order");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create order"
+      );
     } finally {
       setLoading(false);
     }
@@ -165,7 +190,9 @@ export default function NewOrderPage() {
           </div>
 
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Create New Order</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Create New Order
+            </h1>
             <p className="text-muted-foreground">
               Select a customer and add items to create a new order
             </p>
@@ -200,7 +227,8 @@ export default function NewOrderPage() {
                       <div>
                         <p className="font-medium">{selectedCustomer.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {selectedCustomer.phone && `${selectedCustomer.phone} • `}
+                          {selectedCustomer.phone &&
+                            `${selectedCustomer.phone} • `}
                           {selectedCustomer.email}
                         </p>
                       </div>
@@ -240,9 +268,7 @@ export default function NewOrderPage() {
                   <Coffee className="mr-2 h-5 w-5" />
                   Menu Items
                 </CardTitle>
-                <CardDescription>
-                  Add items to the order
-                </CardDescription>
+                <CardDescription>Add items to the order</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
@@ -256,7 +282,9 @@ export default function NewOrderPage() {
                   {categories.map((category) => (
                     <Button
                       key={category.id}
-                      variant={selectedCategory === category.id ? "default" : "outline"}
+                      variant={
+                        selectedCategory === category.id ? "default" : "outline"
+                      }
                       size="sm"
                       onClick={() => setSelectedCategory(category.id)}
                     >
@@ -281,10 +309,7 @@ export default function NewOrderPage() {
                             ${item.price.toFixed(2)}
                           </p>
                         </div>
-                        <Button
-                          size="sm"
-                          onClick={() => addToOrder(item)}
-                        >
+                        <Button size="sm" onClick={() => addToOrder(item)}>
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -301,16 +326,17 @@ export default function NewOrderPage() {
                   <ShoppingCart className="mr-2 h-5 w-5" />
                   Order Summary
                 </CardTitle>
-                <CardDescription>
-                  Review and submit the order
-                </CardDescription>
+                <CardDescription>Review and submit the order</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {orderItems.length > 0 ? (
                   <>
                     <div className="max-h-64 overflow-y-auto space-y-2">
                       {orderItems.map((item) => (
-                        <div key={item.menuItemId} className="p-3 border rounded-lg">
+                        <div
+                          key={item.menuItemId}
+                          className="p-3 border rounded-lg"
+                        >
                           <div className="flex items-center justify-between mb-2">
                             <p className="font-medium">{item.menuItem.name}</p>
                             <Button
@@ -326,21 +352,34 @@ export default function NewOrderPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.menuItemId,
+                                    item.quantity - 1
+                                  )
+                                }
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="w-8 text-center">{item.quantity}</span>
+                              <span className="w-8 text-center">
+                                {item.quantity}
+                              </span>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.menuItemId,
+                                    item.quantity + 1
+                                  )
+                                }
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
                             <p className="font-medium">
-                              ${(item.menuItem.price * item.quantity).toFixed(2)}
+                              $
+                              {(item.menuItem.price * item.quantity).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -386,7 +425,9 @@ export default function NewOrderPage() {
                 ) : (
                   <div className="text-center py-8">
                     <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-2 text-lg font-semibold">No items added</h3>
+                    <h3 className="mt-2 text-lg font-semibold">
+                      No items added
+                    </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Add items from the menu to create an order.
                     </p>

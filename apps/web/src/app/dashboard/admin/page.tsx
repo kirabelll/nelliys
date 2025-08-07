@@ -337,7 +337,7 @@ export default function SuperAdminDashboard() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Analytics Dashboard
+                Super Admin Dashboard
               </h1>
               <p className="text-gray-600 mt-2 text-lg">
                 Welcome back, {user?.name}! Here's your comprehensive business
@@ -386,6 +386,28 @@ export default function SuperAdminDashboard() {
               >
                 <Zap className="mr-2 h-4 w-4" />
                 Generate Sample Data
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const response = await apiRequest("/api/seed/check-data");
+                    if (response.ok) {
+                      const data = await response.json();
+                      console.log("Database check:", data);
+                      toast.success(
+                        `Found ${data.summary.completedPayments} payments, Revenue: ${data.summary.totalRevenue}`
+                      );
+                    } else {
+                      toast.error("Failed to check data");
+                    }
+                  } catch (error) {
+                    toast.error("Error checking data");
+                  }
+                }}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Check Data
               </Button>
               <Button variant="outline" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />

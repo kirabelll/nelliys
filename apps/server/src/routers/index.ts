@@ -8,6 +8,8 @@ import paymentsRouter from "./payments";
 import menuItemsRouter from "./menu-items";
 import categoriesRouter from "./categories";
 import socketAuthRouter from "./socket-auth";
+import analyticsRouter from "./analytics";
+import seedRouter from "./seed";
 
 const router: ExpressRouter = Router();
 
@@ -19,6 +21,8 @@ router.use("/categories", categoriesRouter);
 router.use("/users", usersRouter);
 router.use("/orders", ordersRouter);
 router.use("/payments", paymentsRouter);
+router.use("/analytics", analyticsRouter);
+router.use("/seed", seedRouter);
 router.use("/", socketAuthRouter);
 
 export default router;

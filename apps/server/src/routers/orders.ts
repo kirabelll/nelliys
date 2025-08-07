@@ -45,6 +45,11 @@ const updateOrderStatusSchema = z.object({
   ]),
 });
 
+const processPaymentSchema = z.object({
+  paymentMethod: z.enum(["CASH", "CARD", "DIGITAL"]),
+  transactionId: z.string().optional(),
+});
+
 // GET /api/orders - List orders (filtered by role)
 router.get(
   "/",
@@ -299,30 +304,79 @@ router.put(
         updateData.preparedById = req.user!.id;
       }
 
-      const updatedOrder = await prisma.order.update({
-        where: { id },
-        data: updateData,
-        include: {
-          customer: true,
-          createdBy: {
-            select: { id: true, name: true, email: true, role: true },
-          },
-          processedBy: {
-            select: { id: true, name: true, email: true, role: true },
-          },
-          preparedBy: {
-            select: { id: true, name: true, email: true, role: true },
-          },
-          orderItems: {
-            include: {
-              menuItem: {
-                include: { category: true },
+      // Use transaction to ensure both order update and payment creation succeed
+      const result = await prisma.$transaction(async (tx) => {
+        // Update the order
+        const updatedOrder = await tx.order.update({
+          where: { id },
+          data: updateData,
+          include: {
+            customer: true,
+            createdBy: {
+              select: { id: true, name: true, email: true, role: true },
+            },
+            processedBy: {
+              select: { id: true, name: true, email: true, role: true },
+            },
+            preparedBy: {
+              select: { id: true, name: true, email: true, role: true },
+            },
+            orderItems: {
+              include: {
+                menuItem: {
+                  include: { category: true },
+                },
               },
             },
+            payment: true,
           },
-          payment: true,
-        },
+        });
+
+        // If status is being changed to PAID, create a payment record
+        if (status === "PAID" && !updatedOrder.payment) {
+          const payment = await tx.payment.create({
+            data: {
+              id: `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              orderId: updatedOrder.id,
+              amount: updatedOrder.totalAmount,
+              status: "COMPLETED",
+              paymentMethod: "CASH", // Default to cash, can be made configurable
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+          console.log(`Payment created for order ${updatedOrder.id}:`, payment.amount, payment.paymentMethod);
+
+          // Fetch the updated order with payment
+          return await tx.order.findUnique({
+            where: { id },
+            include: {
+              customer: true,
+              createdBy: {
+                select: { id: true, name: true, email: true, role: true },
+              },
+              processedBy: {
+                select: { id: true, name: true, email: true, role: true },
+              },
+              preparedBy: {
+                select: { id: true, name: true, email: true, role: true },
+              },
+              orderItems: {
+                include: {
+                  menuItem: {
+                    include: { category: true },
+                  },
+                },
+              },
+              payment: true,
+            },
+          });
+        }
+
+        return updatedOrder;
       });
+
+      const updatedOrder = result;
 
       // Emit real-time event for order status update
       emitOrderUpdate(updatedOrder);
@@ -443,6 +497,93 @@ router.put(
     } catch (error) {
       console.error("Error marking order as ready:", error);
       res.status(500).json({ error: "Failed to mark order as ready" });
+    }
+  }
+);
+
+// POST /api/orders/:id/payment - Process payment for order (Cashier only)
+router.post(
+  "/:id/payment",
+  requireAuth,
+  requireCashier,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { paymentMethod, transactionId } = processPaymentSchema.parse(req.body);
+
+      // Get the order
+      const order = await prisma.order.findUnique({
+        where: { id },
+        include: { payment: true },
+      });
+
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      if (order.status !== "CONFIRMED") {
+        return res.status(400).json({ error: "Order must be confirmed before payment" });
+      }
+
+      if (order.payment) {
+        return res.status(400).json({ error: "Payment already exists for this order" });
+      }
+
+      // Use transaction to update order status and create payment
+      const result = await prisma.$transaction(async (tx) => {
+        // Create payment record
+        const payment = await tx.payment.create({
+          data: {
+            id: `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            orderId: order.id,
+            amount: order.totalAmount,
+            status: "COMPLETED",
+            paymentMethod,
+            transactionId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+
+        // Update order status to PAID
+        const updatedOrder = await tx.order.update({
+          where: { id },
+          data: { 
+            status: "PAID",
+            processedById: req.user!.id,
+          },
+          include: {
+            customer: true,
+            createdBy: {
+              select: { id: true, name: true, email: true, role: true },
+            },
+            processedBy: {
+              select: { id: true, name: true, email: true, role: true },
+            },
+            orderItems: {
+              include: {
+                menuItem: {
+                  include: { category: true },
+                },
+              },
+            },
+            payment: true,
+          },
+        });
+
+        return updatedOrder;
+      });
+
+      // Emit real-time event for order update
+      emitOrderUpdate(result);
+
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.issues });
+      }
+      console.error("Error processing payment:", error);
+      res.status(500).json({ error: "Failed to process payment" });
     }
   }
 );

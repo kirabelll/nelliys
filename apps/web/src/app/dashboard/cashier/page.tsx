@@ -78,6 +78,37 @@ export default function CashierDashboard() {
     }
   };
 
+  const handleProcessPayment = async (
+    orderId: string,
+    paymentMethod: "CASH" | "CARD" | "DIGITAL",
+    transactionId?: string
+  ) => {
+    setUpdatingOrderId(orderId);
+
+    try {
+      const response = await apiRequest(`/api/orders/${orderId}/payment`, {
+        method: "POST",
+        body: JSON.stringify({ 
+          paymentMethod,
+          transactionId: transactionId || undefined
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(`Payment processed successfully via ${paymentMethod}`);
+        refreshData();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to process payment");
+      }
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      toast.error("Network error. Please try again.");
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   // Filter orders for cashier (PENDING, CONFIRMED, PAID)
   const allCashierOrders = orders
     .filter((order) => ["PENDING", "CONFIRMED", "PAID"].includes(order.status))
@@ -388,26 +419,64 @@ export default function CashierDashboard() {
                             )}
 
                             {order.status === "CONFIRMED" && (
-                              <Button
-                                onClick={() =>
-                                  handleOrderStatusUpdate(order.id, "PAID")
-                                }
-                                disabled={updatingOrderId === order.id}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <DollarSign className="mr-2 h-4 w-4" />
-                                {updatingOrderId === order.id
-                                  ? "Processing..."
-                                  : "Mark as Paid"}
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() =>
+                                    handleProcessPayment(order.id, "CASH")
+                                  }
+                                  disabled={updatingOrderId === order.id}
+                                  className="bg-green-600 hover:bg-green-700"
+                                  size="sm"
+                                >
+                                  <DollarSign className="mr-2 h-4 w-4" />
+                                  {updatingOrderId === order.id
+                                    ? "Processing..."
+                                    : "Cash"}
+                                </Button>
+                                <Button
+                                  onClick={() =>
+                                    handleProcessPayment(order.id, "CARD")
+                                  }
+                                  disabled={updatingOrderId === order.id}
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                  size="sm"
+                                >
+                                  <CreditCard className="mr-2 h-4 w-4" />
+                                  {updatingOrderId === order.id
+                                    ? "Processing..."
+                                    : "Card"}
+                                </Button>
+                                <Button
+                                  onClick={() =>
+                                    handleProcessPayment(order.id, "DIGITAL")
+                                  }
+                                  disabled={updatingOrderId === order.id}
+                                  className="bg-purple-600 hover:bg-purple-700"
+                                  size="sm"
+                                >
+                                  <Wifi className="mr-2 h-4 w-4" />
+                                  {updatingOrderId === order.id
+                                    ? "Processing..."
+                                    : "Digital"}
+                                </Button>
+                              </div>
                             )}
 
                             {order.status === "PAID" && (
-                              <div className="flex items-center gap-2 text-green-600">
-                                <CheckCircle className="h-4 w-4" />
-                                <span className="font-medium">
-                                  Sent to Kitchen!
-                                </span>
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2 text-green-600">
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span className="font-medium">
+                                    Payment Completed!
+                                  </span>
+                                </div>
+                                {order.payment && (
+                                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <span>Method: {order.payment.paymentMethod}</span>
+                                    <span>•</span>
+                                    <span>Amount: ${Number(order.payment.amount).toFixed(2)}</span>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

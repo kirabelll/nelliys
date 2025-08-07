@@ -1,6 +1,12 @@
 import { Router } from "express";
 import prisma from "../../prisma";
-import { requireAuth, requireSuperAdmin, requireReception, requireAnyRole } from "../middleware/auth";
+import {
+  requireAuth,
+  requireSuperAdmin,
+  requireReception,
+  requireAnyRole,
+  requireChef,
+} from "../middleware/auth";
 import type { AuthenticatedRequest } from "../middleware/auth";
 
 const router: Router = Router();
@@ -14,7 +20,7 @@ router.get(
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const [
         totalCustomers,
         totalOrders,
@@ -47,7 +53,7 @@ router.get(
         totalOrders,
         todayOrders,
         pendingOrders,
-        ordersByStatus: ordersByStatus.map((item) => ({
+        ordersByStatus: ordersByStatus.map((item: any) => ({
           status: item.status,
           count: item._count.status,
         })),
@@ -55,6 +61,78 @@ router.get(
     } catch (error) {
       console.error("Error fetching reception analytics:", error);
       res.status(500).json({ error: "Failed to fetch reception analytics" });
+    }
+  }
+);
+
+// GET /api/analytics/chef-overview - Get chef dashboard stats
+router.get(
+  "/chef-overview",
+  requireAuth,
+  requireAnyRole,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const [
+        newOrders,
+        preparingOrders,
+        readyOrders,
+        completedTodayOrders,
+        totalKitchenOrders,
+        ordersByStatus,
+      ] = await Promise.all([
+        prisma.order.count({
+          where: {
+            status: "PAID",
+          },
+        }),
+        prisma.order.count({
+          where: {
+            status: "PREPARING",
+          },
+        }),
+        prisma.order.count({
+          where: {
+            status: "READY",
+          },
+        }),
+        prisma.order.count({
+          where: {
+            status: "COMPLETED",
+            createdAt: {
+              gte: today,
+            },
+          },
+        }),
+        prisma.order.count({
+          where: {
+            status: {
+              in: ["PAID", "PREPARING", "READY"],
+            },
+          },
+        }),
+        prisma.order.groupBy({
+          by: ["status"],
+          _count: { status: true },
+        }),
+      ]);
+
+      res.json({
+        newOrders,
+        preparingOrders,
+        readyOrders,
+        completedTodayOrders,
+        totalKitchenOrders,
+        ordersByStatus: ordersByStatus.map((item: any) => ({
+          status: item.status,
+          count: item._count.status,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching chef analytics:", error);
+      res.status(500).json({ error: "Failed to fetch chef analytics" });
     }
   }
 );
@@ -121,11 +199,11 @@ router.get(
       ]);
 
       // Debug logging
-      console.log('Analytics Debug:', {
+      console.log("Analytics Debug:", {
         totalRevenue: totalRevenue._sum.amount,
         todayRevenue: todayRevenue._sum.amount,
         totalOrders,
-        todayOrders
+        todayOrders,
       });
 
       res.json({
@@ -138,11 +216,11 @@ router.get(
           todayOrders,
           todayRevenue: todayRevenue._sum.amount || 0,
         },
-        usersByRole: usersByRole.map((item) => ({
+        usersByRole: usersByRole.map((item: any) => ({
           role: item.role,
           count: item._count.role,
         })),
-        ordersByStatus: ordersByStatus.map((item) => ({
+        ordersByStatus: ordersByStatus.map((item: any) => ({
           status: item.status,
           count: item._count.status,
         })),
@@ -163,10 +241,10 @@ router.get(
   async (req: AuthenticatedRequest, res) => {
     try {
       const { period = "7d" } = req.query;
-      
+
       let startDate: Date;
       const endDate = new Date();
-      
+
       switch (period) {
         case "24h":
           startDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -222,7 +300,10 @@ router.get(
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      const totalRevenue = revenueData.reduce((sum, payment) => sum + Number(payment.amount), 0);
+      const totalRevenue = revenueData.reduce(
+        (sum, payment) => sum + Number(payment.amount),
+        0
+      );
       const totalOrders = revenueData.length;
 
       res.json({
@@ -260,12 +341,12 @@ router.get(
       });
 
       const menuItemsData = await Promise.all(
-        menuPerformance.map(async (item) => {
+        menuPerformance.map(async (item: any) => {
           const menuItem = await prisma.menuItem.findUnique({
             where: { id: item.menuItemId },
             include: { category: true },
           });
-          
+
           return {
             id: item.menuItemId,
             name: menuItem?.name || "Unknown Item",
@@ -311,58 +392,66 @@ router.get(
   requireSuperAdmin,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const [
-        customerOrderCounts,
-        newCustomersThisMonth,
-        customerRetention,
-      ] = await Promise.all([
-        prisma.customer.findMany({
-          include: {
-            _count: {
-              select: { orders: true },
-            },
-            orders: {
-              include: {
-                payment: true,
+      const [customerOrderCounts, newCustomersThisMonth, customerRetention] =
+        await Promise.all([
+          prisma.customer.findMany({
+            include: {
+              _count: {
+                select: { orders: true },
               },
-            },
-          },
-        }),
-        prisma.customer.count({
-          where: {
-            createdAt: {
-              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-            },
-          },
-        }),
-        prisma.customer.count({
-          where: {
-            orders: {
-              some: {
-                createdAt: {
-                  gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+              orders: {
+                include: {
+                  payment: true,
                 },
               },
             },
-          },
-        }),
-      ]);
+          }),
+          prisma.customer.count({
+            where: {
+              createdAt: {
+                gte: new Date(
+                  new Date().getFullYear(),
+                  new Date().getMonth(),
+                  1
+                ),
+              },
+            },
+          }),
+          prisma.customer.count({
+            where: {
+              orders: {
+                some: {
+                  createdAt: {
+                    gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+                  },
+                },
+              },
+            },
+          }),
+        ]);
 
       const customerSegments = {
-        new: customerOrderCounts.filter(c => c._count.orders === 1).length,
-        returning: customerOrderCounts.filter(c => c._count.orders > 1 && c._count.orders <= 5).length,
-        loyal: customerOrderCounts.filter(c => c._count.orders > 5).length,
+        new: customerOrderCounts.filter((c) => c._count.orders === 1).length,
+        returning: customerOrderCounts.filter(
+          (c) => c._count.orders > 1 && c._count.orders <= 5
+        ).length,
+        loyal: customerOrderCounts.filter((c) => c._count.orders > 5).length,
       };
 
       const topCustomers = customerOrderCounts
-        .map(customer => ({
+        .map((customer) => ({
           id: customer.id,
           name: customer.name,
           email: customer.email,
           phone: customer.phone,
           orderCount: customer._count.orders,
-          totalSpent: customer.orders.reduce((sum, order) => 
-            sum + (order.payment?.status === "COMPLETED" ? Number(order.payment.amount) : 0), 0
+          totalSpent: customer.orders.reduce(
+            (sum, order) =>
+              sum +
+              (order.payment?.status === "COMPLETED"
+                ? Number(order.payment.amount)
+                : 0),
+            0
           ),
         }))
         .sort((a, b) => b.totalSpent - a.totalSpent)

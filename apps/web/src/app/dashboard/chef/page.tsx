@@ -74,6 +74,14 @@ export default function ChefDashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [stats, setStats] = useState({
+    newOrders: 0,
+    preparingOrders: 0,
+    readyOrders: 0,
+    completedTodayOrders: 0,
+    totalKitchenOrders: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
 
   // Load categories on component mount
   useEffect(() => {
@@ -96,6 +104,45 @@ export default function ChefDashboard() {
     };
 
     loadCategories();
+  }, []);
+
+  // Fetch stats data from analytics
+  const fetchStats = async () => {
+    try {
+      setStatsLoading(true);
+      console.log("Fetching chef stats...");
+      const response = await apiRequest("/api/analytics/chef-overview");
+      console.log("Chef stats response status:", response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Chef stats data received:", data);
+        setStats({
+          newOrders: data.newOrders || 0,
+          preparingOrders: data.preparingOrders || 0,
+          readyOrders: data.readyOrders || 0,
+          completedTodayOrders: data.completedTodayOrders || 0,
+          totalKitchenOrders: data.totalKitchenOrders || 0,
+        });
+      } else {
+        const errorText = await response.text();
+        console.error("Chef stats fetch failed:", response.status, errorText);
+      }
+    } catch (error) {
+      console.error("Error fetching chef stats:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Initial stats load and polling setup
+  useEffect(() => {
+    fetchStats();
+
+    // Set up polling every 30 seconds for stats
+    const interval = setInterval(() => {
+      fetchStats();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = () => {
@@ -145,18 +192,12 @@ export default function ChefDashboard() {
     }
   };
 
-  // Calculate stats for the dashboard
+  // Use stats from analytics API instead of calculating on frontend
   const orderStats = {
-    newOrders: orders.filter((order) => order.status === "PAID").length,
-    preparing: orders.filter((order) => order.status === "PREPARING").length,
-    ready: orders.filter((order) => order.status === "READY").length,
-    completedToday: orders.filter((order) => {
-      const today = new Date().toDateString();
-      return (
-        order.status === "COMPLETED" &&
-        new Date(order.createdAt).toDateString() === today
-      );
-    }).length,
+    newOrders: stats.newOrders,
+    preparing: stats.preparingOrders,
+    ready: stats.readyOrders,
+    completedToday: stats.completedTodayOrders,
   };
 
   // Filter kitchen orders (PAID, PREPARING, READY)
@@ -192,6 +233,7 @@ export default function ChefDashboard() {
       if (response.ok) {
         toast.success(`Order status updated to ${newStatus}`);
         refreshData(); // Refresh the orders data
+        fetchStats(); // Refresh the stats data
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to update order status");
@@ -362,12 +404,15 @@ export default function ChefDashboard() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={refreshData}
-                disabled={ordersLoading}
+                onClick={() => {
+                  refreshData();
+                  fetchStats();
+                }}
+                disabled={ordersLoading || statsLoading}
               >
                 <RefreshCw
                   className={`mr-2 h-4 w-4 ${
-                    ordersLoading ? "animate-spin" : ""
+                    ordersLoading || statsLoading ? "animate-spin" : ""
                   }`}
                 />
                 Refresh
@@ -399,7 +444,11 @@ export default function ChefDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-blue-800">
-                  {orderStats.newOrders}
+                  {statsLoading ? (
+                    <RefreshCw className="h-8 w-8 animate-spin" />
+                  ) : (
+                    orderStats.newOrders
+                  )}
                 </div>
                 <p className="text-xs text-blue-600 mt-1">Ready to prepare</p>
               </CardContent>
@@ -423,7 +472,11 @@ export default function ChefDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-orange-800">
-                  {orderStats.preparing}
+                  {statsLoading ? (
+                    <RefreshCw className="h-8 w-8 animate-spin" />
+                  ) : (
+                    orderStats.preparing
+                  )}
                 </div>
                 <p className="text-xs text-orange-600 mt-1">
                   Currently cooking
@@ -449,7 +502,11 @@ export default function ChefDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-purple-800">
-                  {orderStats.ready}
+                  {statsLoading ? (
+                    <RefreshCw className="h-8 w-8 animate-spin" />
+                  ) : (
+                    orderStats.ready
+                  )}
                 </div>
                 <p className="text-xs text-purple-600 mt-1">Awaiting pickup</p>
               </CardContent>
@@ -473,7 +530,11 @@ export default function ChefDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-green-800">
-                  {orderStats.completedToday}
+                  {statsLoading ? (
+                    <RefreshCw className="h-8 w-8 animate-spin" />
+                  ) : (
+                    orderStats.completedToday
+                  )}
                 </div>
                 <p className="text-xs text-green-600 mt-1">Orders finished</p>
               </CardContent>
@@ -515,12 +576,15 @@ export default function ChefDashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={refreshData}
-                  disabled={ordersLoading}
+                  onClick={() => {
+                    refreshData();
+                    fetchStats();
+                  }}
+                  disabled={ordersLoading || statsLoading}
                 >
                   <RefreshCw
                     className={`mr-2 h-4 w-4 ${
-                      ordersLoading ? "animate-spin" : ""
+                      ordersLoading || statsLoading ? "animate-spin" : ""
                     }`}
                   />
                   Refresh

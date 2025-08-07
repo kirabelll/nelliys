@@ -370,27 +370,6 @@ export default function SuperAdminDashboard() {
                 variant="outline"
                 onClick={async () => {
                   try {
-                    const response = await apiRequest("/api/seed/sample-data", {
-                      method: "POST",
-                    });
-                    if (response.ok) {
-                      toast.success("Sample data created successfully");
-                      handleRefresh();
-                    } else {
-                      toast.error("Failed to create sample data");
-                    }
-                  } catch (error) {
-                    toast.error("Error creating sample data");
-                  }
-                }}
-              >
-                <Zap className="mr-2 h-4 w-4" />
-                Generate Sample Data
-              </Button>
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  try {
                     const response = await apiRequest("/api/seed/check-data");
                     if (response.ok) {
                       const data = await response.json();

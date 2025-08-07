@@ -1,9 +1,63 @@
 import { Router } from "express";
 import prisma from "../../prisma";
-import { requireAuth, requireSuperAdmin } from "../middleware/auth";
+import { requireAuth, requireSuperAdmin, requireReception, requireAnyRole } from "../middleware/auth";
 import type { AuthenticatedRequest } from "../middleware/auth";
 
 const router: Router = Router();
+
+// GET /api/analytics/reception-overview - Get reception dashboard stats
+router.get(
+  "/reception-overview",
+  requireAuth,
+  requireAnyRole,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const [
+        totalCustomers,
+        totalOrders,
+        todayOrders,
+        pendingOrders,
+        ordersByStatus,
+      ] = await Promise.all([
+        prisma.customer.count(),
+        prisma.order.count(),
+        prisma.order.count({
+          where: {
+            createdAt: {
+              gte: today,
+            },
+          },
+        }),
+        prisma.order.count({
+          where: {
+            status: "PENDING",
+          },
+        }),
+        prisma.order.groupBy({
+          by: ["status"],
+          _count: { status: true },
+        }),
+      ]);
+
+      res.json({
+        totalCustomers,
+        totalOrders,
+        todayOrders,
+        pendingOrders,
+        ordersByStatus: ordersByStatus.map((item) => ({
+          status: item.status,
+          count: item._count.status,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching reception analytics:", error);
+      res.status(500).json({ error: "Failed to fetch reception analytics" });
+    }
+  }
+);
 
 // GET /api/analytics/overview - Get dashboard overview stats
 router.get(

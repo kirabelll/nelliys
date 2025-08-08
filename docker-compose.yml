@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: nelliys-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nelliys}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - nelliys-network
+    restart: unless-stopped
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: nelliys-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nelliys-network
+    restart: unless-stopped
+
+  # Server (Express API)
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: nelliys-server
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-nelliys}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - nelliys-network
+    restart: unless-stopped
+    volumes:
+      - ./apps/server/uploads:/app/uploads
+
+  # Web (Next.js Frontend)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: nelliys-web
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:3000}
+    ports:
+      - "3001:3000"
+    depends_on:
+      - server
+    networks:
+      - nelliys-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  nelliys-network:
+    driver: bridge

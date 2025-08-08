@@ -36,8 +36,18 @@ app.use("/api/auth", toNodeHandler(auth));
 // API routes
 app.use("/api", apiRouter);
 
+// Health check endpoints
 app.get("/", (_req, res) => {
   res.status(200).send("OK");
+});
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || "development"
+  });
 });
 
 const port = process.env.PORT || 3000;

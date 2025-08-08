@@ -8,9 +8,7 @@ const router: Router = Router();
 
 // Validation schemas
 const updateUserRoleSchema = z.object({
-  role: z.enum(["RECEPTION", "CHEF", "CASHIER", "SUPER_ADMIN"], {
-    message: "Role must be RECEPTION, CHEF, CASHIER, or SUPER_ADMIN",
-  }),
+  role: z.enum(["RECEPTION", "CHEF", "CASHIER", "SUPER_ADMIN"]),
 });
 
 const createUserSchema = z.object({

@@ -1,0 +1,59 @@
+# Multi-stage build for Express server
+FROM node:20-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/server/package.json ./apps/server/
+COPY turbo.json ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build the source code
+FROM base AS builder
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
+COPY . .
+
+# Generate Prisma client
+RUN pnpm turbo db:generate --filter=server
+
+# Build the server
+RUN pnpm turbo build --filter=server
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 expressjs
+
+# Install pnpm for production
+RUN npm install -g pnpm
+
+# Copy built application
+COPY --from=builder --chown=expressjs:nodejs /app/apps/server/dist ./dist
+COPY --from=builder --chown=expressjs:nodejs /app/apps/server/prisma ./prisma
+COPY --from=builder --chown=expressjs:nodejs /app/apps/server/package.json ./package.json
+COPY --from=builder --chown=expressjs:nodejs /app/node_modules ./node_modules
+
+USER expressjs
+
+EXPOSE 3000
+
+CMD ["node", "dist/index.js"]

@@ -9,10 +9,11 @@
 ### Step 2: Deploy Full Stack Application
 1. Create a new **Application** in Coolify
 2. Connect your Git repository (deployment branch)
-3. **Dockerfile**: Use the default `Dockerfile` (builds both web and server)
+3. **Build Pack**: Select **Nixpacks** (not Dockerfile)
 4. **Port**: 3000
-5. **Build Command**: Leave empty (uses Dockerfile)
-6. **Environment Variables**:
+5. **Build Command**: Leave empty (uses nixpacks.toml)
+6. **Start Command**: `pnpm start`
+7. **Environment Variables**:
    ```
    NODE_ENV=production
    DATABASE_URL=postgresql://username:password@postgres-host:5432/database

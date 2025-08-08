@@ -1,0 +1,17 @@
+[variables]
+NODE_ENV = "production"
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm"]
+
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile"]
+
+[phases.build]
+cmds = [
+  "pnpm turbo db:generate --filter=server",
+  "pnpm turbo build --filter=server --filter=web"
+]
+
+[start]
+cmd = "node apps/server/dist/index.js"

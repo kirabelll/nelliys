@@ -22,6 +22,51 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from Next.js build in production
+if (process.env.NODE_ENV === 'production') {
+  const path = require('path');
+  
+  // Serve Next.js static files
+  app.use('/_next/static', express.static(path.join(process.cwd(), 'apps/web/.next/static')));
+  app.use('/static', express.static(path.join(process.cwd(), 'apps/web/public')));
+  
+  // Serve the Next.js app for non-API routes
+  app.get('*', (req, res, next) => {
+    // Skip API routes and health check
+    if (req.path.startsWith('/api/') || req.path === '/health') {
+      return next();
+    }
+    
+    // Serve the Next.js index.html for all other routes
+    res.sendFile(path.join(process.cwd(), 'apps/web/.next/server/pages/index.html'), (err) => {
+      if (err) {
+        // Fallback to a simple response if file not found
+        res.status(200).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Nelliys App</title>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+            </head>
+            <body>
+              <div id="__next">
+                <h1>Nelliys Cafe Management System</h1>
+                <p>Application is starting up...</p>
+                <script>
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 3000);
+                </script>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+    });
+  });
+}
+
 // Debug middleware to log all requests
 app.use((req, res, next) => {
   console.log(

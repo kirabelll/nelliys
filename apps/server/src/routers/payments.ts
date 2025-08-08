@@ -9,9 +9,7 @@ const router: Router = Router();
 
 // Validation schemas
 const processPaymentSchema = z.object({
-  paymentMethod: z.enum(["cash", "card", "digital"], {
-    errorMap: () => ({ message: "Payment method must be cash, card, or digital" })
-  }),
+  paymentMethod: z.enum(["cash", "card", "digital"]),
   transactionId: z.string().optional(),
 });
 

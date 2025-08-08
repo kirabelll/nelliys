@@ -1,4 +1,4 @@
-import { Server as SocketIOServer } from "socket.io";
+import { Server as SocketIOServer, Socket } from "socket.io";
 import { Server as HTTPServer } from "http";
 import { verifySimpleJWT } from "./jwt-utils";
 
@@ -9,9 +9,7 @@ export interface SocketUser {
   role: string;
 }
 
-export interface AuthenticatedSocket extends Socket {
-  user?: SocketUser;
-}
+
 
 let io: SocketIOServer;
 
@@ -44,7 +42,7 @@ export const initializeSocket = (server: HTTPServer) => {
     }
   });
 
-  io.on("connection", (socket: AuthenticatedSocket) => {
+  io.on("connection", (socket: Socket & { user?: SocketUser }) => {
     console.log(`User connected: ${socket.user?.name} (${socket.user?.role})`);
 
     // Join role-based rooms
@@ -59,26 +57,26 @@ export const initializeSocket = (server: HTTPServer) => {
     });
 
     // Handle order status updates
-    socket.on("order-status-update", (data) => {
+    socket.on("order-status-update", (data: any) => {
       // Broadcast to all users
       io.to("all-users").emit("order-updated", data);
     });
 
     // Handle new order creation
-    socket.on("order-created", (data) => {
+    socket.on("order-created", (data: any) => {
       // Notify reception and cashier
       io.to("reception").emit("new-order", data);
       io.to("cashier").emit("new-order", data);
     });
 
     // Handle menu updates
-    socket.on("menu-updated", (data) => {
+    socket.on("menu-updated", (data: any) => {
       // Notify all users about menu changes
       io.to("all-users").emit("menu-changed", data);
     });
 
     // Handle customer updates
-    socket.on("customer-updated", (data) => {
+    socket.on("customer-updated", (data: any) => {
       // Notify reception users
       io.to("reception").emit("customer-changed", data);
     });

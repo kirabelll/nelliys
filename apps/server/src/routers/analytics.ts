@@ -53,7 +53,12 @@ router.get(
         totalOrders,
         todayOrders,
         pendingOrders,
-        ordersByStatus: ordersByStatus.map((item: any) => ({
+        ordersByStatus: (
+          ordersByStatus as Array<{
+            status: string;
+            _count: { status: number };
+          }>
+        ).map((item) => ({
           status: item.status,
           count: item._count.status,
         })),
@@ -125,7 +130,12 @@ router.get(
         readyOrders,
         completedTodayOrders,
         totalKitchenOrders,
-        ordersByStatus: ordersByStatus.map((item: any) => ({
+        ordersByStatus: (
+          ordersByStatus as Array<{
+            status: string;
+            _count: { status: number };
+          }>
+        ).map((item) => ({
           status: item.status,
           count: item._count.status,
         })),
@@ -216,11 +226,18 @@ router.get(
           todayOrders,
           todayRevenue: todayRevenue._sum.amount || 0,
         },
-        usersByRole: usersByRole.map((item: any) => ({
+        usersByRole: (
+          usersByRole as Array<{ role: string; _count: { role: number } }>
+        ).map((item) => ({
           role: item.role,
           count: item._count.role,
         })),
-        ordersByStatus: ordersByStatus.map((item: any) => ({
+        ordersByStatus: (
+          ordersByStatus as Array<{
+            status: string;
+            _count: { status: number };
+          }>
+        ).map((item) => ({
           status: item.status,
           count: item._count.status,
         })),
@@ -341,7 +358,13 @@ router.get(
       });
 
       const menuItemsData = await Promise.all(
-        menuPerformance.map(async (item: any) => {
+        (
+          menuPerformance as Array<{
+            menuItemId: string;
+            _sum: { quantity: number | null; totalPrice: any };
+            _count: { id: number };
+          }>
+        ).map(async (item) => {
           const menuItem = await prisma.menuItem.findUnique({
             where: { id: item.menuItemId },
             include: { category: true },

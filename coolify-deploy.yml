@@ -1,0 +1,40 @@
+# Coolify Deployment Configuration
+# This file contains deployment instructions for Coolify
+
+# Database Setup (PostgreSQL)
+# 1. Create a PostgreSQL database service in Coolify
+# 2. Note the connection details for environment variables
+
+# Environment Variables Required:
+# - DATABASE_URL: PostgreSQL connection string
+# - JWT_SECRET: Secret key for JWT tokens
+# - CORS_ORIGIN: Frontend URL for CORS
+# - NEXT_PUBLIC_API_URL: Backend API URL for frontend
+# - NEXT_PUBLIC_WS_URL: WebSocket URL for real-time features
+
+# Deployment Steps:
+# 1. Fork/Clone this repository
+# 2. Connect repository to Coolify
+# 3. Create two applications:
+#    - Backend API (using Dockerfile.server)
+#    - Frontend Web (using Dockerfile.web)
+# 4. Set up PostgreSQL database
+# 5. Configure environment variables
+# 6. Deploy both applications
+
+# Network Configuration:
+# - Backend should be accessible internally and externally
+# - Frontend should be accessible externally
+# - Database should be accessible only internally
+
+# Volumes:
+# - Database data: /var/lib/postgresql/data
+# - Server uploads: /app/uploads (if file uploads are needed)
+
+# Health Checks:
+# - Backend: GET /api/health
+# - Frontend: GET / (Next.js default)
+
+# Build Commands:
+# Backend: Uses Dockerfile.server
+# Frontend: Uses Dockerfile.web

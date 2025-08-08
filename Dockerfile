@@ -70,11 +70,21 @@ COPY --from=builder --chown=appuser:nodejs /app/node_modules ./node_modules
 RUN mkdir -p /etc/nginx/conf.d && \
     echo 'server {' > /etc/nginx/conf.d/default.conf && \
     echo '    listen 3000;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    server_name localhost;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    server_name _;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    client_max_body_size 100M;' >> /etc/nginx/conf.d/default.conf && \
+    echo '' >> /etc/nginx/conf.d/default.conf && \
+    echo '    # Health check' >> /etc/nginx/conf.d/default.conf && \
+    echo '    location /health {' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_pass http://127.0.0.1:3001;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header Host $host;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Real-IP $remote_addr;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Forwarded-Proto $scheme;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    }' >> /etc/nginx/conf.d/default.conf && \
     echo '' >> /etc/nginx/conf.d/default.conf && \
     echo '    # API routes to backend' >> /etc/nginx/conf.d/default.conf && \
     echo '    location /api/ {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        proxy_pass http://localhost:3001;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_pass http://127.0.0.1:3001;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_http_version 1.1;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_set_header Upgrade $http_upgrade;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_set_header Connection "upgrade";' >> /etc/nginx/conf.d/default.conf && \
@@ -82,24 +92,14 @@ RUN mkdir -p /etc/nginx/conf.d && \
     echo '        proxy_set_header X-Real-IP $remote_addr;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_set_header X-Forwarded-Proto $scheme;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    }' >> /etc/nginx/conf.d/default.conf && \
-    echo '' >> /etc/nginx/conf.d/default.conf && \
-    echo '    # Health check' >> /etc/nginx/conf.d/default.conf && \
-    echo '    location /health {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        proxy_pass http://localhost:3001;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_connect_timeout 60s;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_send_timeout 60s;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_read_timeout 60s;' >> /etc/nginx/conf.d/default.conf && \
     echo '    }' >> /etc/nginx/conf.d/default.conf && \
     echo '' >> /etc/nginx/conf.d/default.conf && \
     echo '    # Socket.IO' >> /etc/nginx/conf.d/default.conf && \
     echo '    location /socket.io/ {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        proxy_pass http://localhost:3001;' >> /etc/nginx/conf.d/default.conf && \
-    echo '        proxy_http_version 1.1;' >> /etc/nginx/conf.d/default.conf && \
-    echo '        proxy_set_header Upgrade $http_upgrade;' >> /etc/nginx/conf.d/default.conf && \
-    echo '        proxy_set_header Connection "upgrade";' >> /etc/nginx/conf.d/default.conf && \
-    echo '    }' >> /etc/nginx/conf.d/default.conf && \
-    echo '' >> /etc/nginx/conf.d/default.conf && \
-    echo '    # Frontend routes' >> /etc/nginx/conf.d/default.conf && \
-    echo '    location / {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        proxy_pass http://localhost:3002;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_pass http://127.0.0.1:3001;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_http_version 1.1;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_set_header Upgrade $http_upgrade;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_set_header Connection "upgrade";' >> /etc/nginx/conf.d/default.conf && \
@@ -107,6 +107,21 @@ RUN mkdir -p /etc/nginx/conf.d && \
     echo '        proxy_set_header X-Real-IP $remote_addr;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' >> /etc/nginx/conf.d/default.conf && \
     echo '        proxy_set_header X-Forwarded-Proto $scheme;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    }' >> /etc/nginx/conf.d/default.conf && \
+    echo '' >> /etc/nginx/conf.d/default.conf && \
+    echo '    # Frontend routes' >> /etc/nginx/conf.d/default.conf && \
+    echo '    location / {' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_pass http://127.0.0.1:3002;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_http_version 1.1;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header Upgrade $http_upgrade;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header Connection "upgrade";' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header Host $host;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Real-IP $remote_addr;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Forwarded-Proto $scheme;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_connect_timeout 60s;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_send_timeout 60s;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_read_timeout 60s;' >> /etc/nginx/conf.d/default.conf && \
     echo '    }' >> /etc/nginx/conf.d/default.conf && \
     echo '}' >> /etc/nginx/conf.d/default.conf
 
@@ -117,28 +132,44 @@ RUN echo 'module.exports = {' > ecosystem.config.js && \
     echo '      name: "server",' >> ecosystem.config.js && \
     echo '      script: "./server/dist/index.js",' >> ecosystem.config.js && \
     echo '      cwd: "/app",' >> ecosystem.config.js && \
-    echo '      env: {' >> ecosystem.config.js && \
+    echo '      instances: 1,' >> ecosystem.config.js && \
+    echo '      exec_mode: "fork",' >> ecosystem.config.js && \
+    echo '      env_production: {' >> ecosystem.config.js && \
     echo '        NODE_ENV: "production",' >> ecosystem.config.js && \
     echo '        PORT: "3001"' >> ecosystem.config.js && \
-    echo '      }' >> ecosystem.config.js && \
+    echo '      },' >> ecosystem.config.js && \
+    echo '      error_file: "/app/logs/server-error.log",' >> ecosystem.config.js && \
+    echo '      out_file: "/app/logs/server-out.log",' >> ecosystem.config.js && \
+    echo '      log_file: "/app/logs/server-combined.log"' >> ecosystem.config.js && \
     echo '    },' >> ecosystem.config.js && \
     echo '    {' >> ecosystem.config.js && \
     echo '      name: "web",' >> ecosystem.config.js && \
     echo '      script: "./web/apps/web/server.js",' >> ecosystem.config.js && \
     echo '      cwd: "/app",' >> ecosystem.config.js && \
-    echo '      env: {' >> ecosystem.config.js && \
+    echo '      instances: 1,' >> ecosystem.config.js && \
+    echo '      exec_mode: "fork",' >> ecosystem.config.js && \
+    echo '      env_production: {' >> ecosystem.config.js && \
     echo '        NODE_ENV: "production",' >> ecosystem.config.js && \
     echo '        PORT: "3002"' >> ecosystem.config.js && \
-    echo '      }' >> ecosystem.config.js && \
+    echo '      },' >> ecosystem.config.js && \
+    echo '      error_file: "/app/logs/web-error.log",' >> ecosystem.config.js && \
+    echo '      out_file: "/app/logs/web-out.log",' >> ecosystem.config.js && \
+    echo '      log_file: "/app/logs/web-combined.log"' >> ecosystem.config.js && \
     echo '    }' >> ecosystem.config.js && \
     echo '  ]' >> ecosystem.config.js && \
-    echo '};' >> ecosystem.config.js
+    echo '};' >> ecosystem.config.js && \
+    echo '' >> ecosystem.config.js && \
+    mkdir -p /app/logs
 
 # Create startup script
 RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'echo "Starting Nelliys App..."' >> /app/start.sh && \
-    echo 'nginx &' >> /app/start.sh && \
-    echo 'pm2-runtime start ecosystem.config.js' >> /app/start.sh && \
+    echo 'echo "Testing nginx configuration..."' >> /app/start.sh && \
+    echo 'nginx -t' >> /app/start.sh && \
+    echo 'echo "Starting nginx..."' >> /app/start.sh && \
+    echo 'nginx' >> /app/start.sh && \
+    echo 'echo "Starting PM2 applications..."' >> /app/start.sh && \
+    echo 'pm2-runtime start ecosystem.config.js --env production' >> /app/start.sh && \
     chmod +x /app/start.sh
 
 # Change ownership of nginx directories

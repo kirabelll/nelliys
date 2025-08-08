@@ -17,9 +17,9 @@
    NODE_ENV=production
    DATABASE_URL=postgresql://username:password@postgres-host:5432/database
    JWT_SECRET=your-super-secret-jwt-key-change-this
-   CORS_ORIGIN=https://your-domain.com
-   NEXT_PUBLIC_API_URL=https://your-domain.com
-   NEXT_PUBLIC_WS_URL=wss://your-domain.com
+   CORS_ORIGIN=https://nelliystack.vetafholdings.com
+   NEXT_PUBLIC_API_URL=https://nelliystack.vetafholdings.com
+   NEXT_PUBLIC_WS_URL=wss://nelliystack.vetafholdings.com
    PORT=3000
    ```
 

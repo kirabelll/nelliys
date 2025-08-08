@@ -22,11 +22,13 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-
 // Debug middleware to log all requests
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - ${req.headers['user-agent']?.substring(0, 50) || 'Unknown'}`);
+  console.log(
+    `${new Date().toISOString()} - ${req.method} ${req.path} - ${
+      req.headers["user-agent"]?.substring(0, 50) || "Unknown"
+    }`
+  );
   next();
 });
 
@@ -38,7 +40,7 @@ app.use("/api", apiRouter);
 
 // Health check endpoints
 app.get("/", (_req, res) => {
-  res.status(200).send("OK");
+  res.status(200).send("Nelliys App Server - Ready");
 });
 
 app.get("/health", (_req, res) => {
@@ -46,7 +48,7 @@ app.get("/health", (_req, res) => {
     status: "healthy",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || "development"
+    environment: process.env.NODE_ENV || "development",
   });
 });
 

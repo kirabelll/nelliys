@@ -11,11 +11,12 @@
 2. Connect your Git repository (deployment branch)
 3. **Dockerfile**: Use the default `Dockerfile` (builds both web and server)
 4. **Port**: 3000
-5. **Environment Variables**:
+5. **Build Command**: Leave empty (uses Dockerfile)
+6. **Environment Variables**:
    ```
    NODE_ENV=production
    DATABASE_URL=postgresql://username:password@postgres-host:5432/database
-   JWT_SECRET=your-super-secret-jwt-key
+   JWT_SECRET=your-super-secret-jwt-key-change-this
    CORS_ORIGIN=https://your-domain.com
    NEXT_PUBLIC_API_URL=https://your-domain.com
    NEXT_PUBLIC_WS_URL=wss://your-domain.com

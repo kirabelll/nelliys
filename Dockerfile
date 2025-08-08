@@ -33,6 +33,9 @@ COPY . .
 # Generate Prisma client
 RUN pnpm turbo db:generate --filter=server
 
+# Ensure public directory exists
+RUN mkdir -p apps/web/public
+
 # Build both applications
 RUN pnpm turbo build --filter=server --filter=web
 

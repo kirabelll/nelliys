@@ -42,12 +42,10 @@ export function NavMain({
               defaultOpen={item.isActive}
               className="group/collapsible"
             >
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
+              <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md p-2 text-left text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&[data-state=open]>svg]:rotate-90">
+                {item.icon && <item.icon className="h-4 w-4" />}
+                <span>{item.title}</span>
+                <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarMenuSub>

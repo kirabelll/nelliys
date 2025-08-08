@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import RoleGuard from "@/components/common/RoleGuard";
@@ -60,7 +60,7 @@ const statusColors = {
   CANCELLED: "bg-red-100 text-red-800",
 };
 
-export default function OrdersPage() {
+function OrdersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -129,23 +129,21 @@ export default function OrdersPage() {
   ];
 
   return (
-    <RoleGuard allowedRoles={["RECEPTION"]}>
-      <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-              <p className="text-muted-foreground">
-                Manage customer orders and track their status
-              </p>
-            </div>
-            <Link href="/dashboard/reception/orders/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Order
-              </Button>
-            </Link>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
+          <p className="text-muted-foreground">
+            Manage customer orders and track their status
+          </p>
+        </div>
+        <Link href="/dashboard/reception/orders/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Order
+          </Button>
+        </Link>
+      </div>
 
           {/* Status Filter */}
           <Card>
@@ -376,6 +374,42 @@ export default function OrdersPage() {
             </CardContent>
           </Card>
         </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <RoleGuard allowedRoles={["RECEPTION"]}>
+      <DashboardLayout>
+        <Suspense fallback={
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
+                <p className="text-muted-foreground">
+                  Loading orders...
+                </p>
+              </div>
+            </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        }>
+          <OrdersContent />
+        </Suspense>
       </DashboardLayout>
     </RoleGuard>
   );
